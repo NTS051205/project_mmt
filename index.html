@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mô Phỏng Thuật Toán Dijkstra</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: white;
+            font-family: 'Consolas', monospace;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        #controls {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .visualization-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+        #graphContainer {
+            flex: 2;
+            border: 1px solid #444;
+            padding: 20px;
+            background-color: #252526;
+            min-height: 400px;
+        }
+        #logContainer {
+            flex: 1;
+            border: 1px solid #444;
+            padding: 20px;
+            background-color: #252526;
+            overflow-y: auto;
+            min-height: 150px;
+        }
+        #arrayContainer {
+            flex: 1;
+            border: 1px solid #444;
+            padding: 20px;
+            background-color: #252526;
+            min-height: 100px;
+        }
+        #codeContainer {
+            border: 1px solid #444;
+            padding: 20px;
+            background-color: #252526;
+            overflow: auto;
+            height: calc(100vh - 100px);
+        }
+        .array-cell {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #666;
+            text-align: center;
+            line-height: 40px;
+            margin-right: 5px;
+            background-color: #333;
+        }
+        .array-cell.active {
+            background-color: #4CAF50;
+        }
+        .line-number {
+            color: #858585;
+            margin-right: 10px;
+            user-select: none;
+        }
+        .code-line {
+            padding: 2px 0;
+        }
+        .code-line.highlight {
+            background-color: #2d4f2d;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .log-entry {
+            color: #dcdcdc;
+            font-family: 'Consolas', monospace;
+            margin: 2px 0;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #speedSlider {
+            width: 100px;
+        }
+        .node circle {
+            cursor: pointer;
+            transition: fill 0.3s;
+        }
+        .node circle.start {
+            fill: #4CAF50 !important;
+        }
+        .node circle.end {
+            fill: #f44336 !important;
+        }
+        .selection-status {
+            color: #dcdcdc;
+            margin-left: 20px;
+            font-size: 14px;
+        }
+        .step-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 20px;
+            padding: 5px 15px;
+            background: #252526;
+            border-radius: 4px;
+        }
+        .step-counter {
+            font-family: 'Consolas', monospace;
+            color: #dcdcdc;
+            min-width: 100px;
+        }
+        .step-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .step-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .step-btn:hover {
+            background-color: #555;
+        }
+        .step-btn:disabled {
+            background-color: #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .execution-mode {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 15px;
+        }
+        .mode-label {
+            color: #dcdcdc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="generateNewGraph()">Tạo Đồ Thị Mới</button>
+        <button onclick="runDijkstra()">Chạy Thuật Toán</button>
+        <div class="speed-control">
+            <label>Tốc độ:</label>
+            <input type="range" id="speedSlider" min="1" max="100" value="50">
+        </div>
+        <div class="execution-mode">
+            <label class="mode-label">Chế độ:</label>
+            <select id="executionMode" onchange="updateExecutionMode()">
+                <option value="auto">Tự động</option>
+                <option value="manual">Thủ công (Từng bước)</option>
+            </select>
+        </div>
+        <div class="step-controls">
+            <div class="step-counter">Bước: <span id="currentStep">0</span> / <span id="totalSteps">0</span></div>
+            <div class="step-buttons">
+                <button class="step-btn" id="prevStep" onclick="previousStep()" disabled>◀ Trước</button>
+                <button class="step-btn" id="nextStep" onclick="nextStep()" disabled>Tiếp ▶</button>
+            </div>
+        </div>
+        <div class="selection-status">
+            Click vào các đỉnh để chọn điểm bắt đầu (xanh) và điểm kết thúc (đỏ)
+        </div>
+    </div>
+    <div class="visualization-column">
+        <div id="graphContainer"></div>
+        <div id="logContainer"></div>
+        <div id="arrayContainer">
+            <div id="arrayVisualization"></div>
+        </div>
+    </div>
+    <div id="codeContainer">
+        <pre id="codeArea"></pre>
+    </div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="graph.js"></script>
+</body>
+</html> 
